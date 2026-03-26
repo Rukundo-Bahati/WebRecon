@@ -1,4 +1,4 @@
-# WebRecon - Advanced Security Reconnaissance Tool
+# WebRecon - Advanced Security Recon Tool
 
 ## Overview
 

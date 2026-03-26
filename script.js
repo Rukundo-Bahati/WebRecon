@@ -17,7 +17,6 @@
 (function() {
     'use strict';
     
-    // ==================== CONFIGURATION ====================
     const CONFIG = {
         stealthMode: false,
         autoHidePanel: false,
@@ -28,8 +27,6 @@
         analyzeJSFiles: true,
         maxJSSize: 5 * 1024 * 1024,
         ignoreDomains: ['google-analytics.com', 'doubleclick.net', 'googletagmanager.com'],
-        
-        // Stealth mechanisms
         stealth: {
             randomizeDelay: true,
             minDelay: 1000,
@@ -43,69 +40,44 @@
             randomizeRequestOrder: true,
             simulateHumanBehavior: true
         },
-        
-        // Keywords - will be searched case-insensitively
-        // This includes variations like admin, ADMIN, Admin, etc.
         keywords: [
-            // Admin & Roles
             'admin', 'super_admin', 'superadmin', 'sysadmin', 'system_admin',
             'role', 'user_role', 'userrole', 'user_roles', 'userroles',
             'register', 'registration', 'signup',
             'moderator', 'moderators', 'editor', 'editors',
             'permission', 'permissions', 'privilege', 'privileges',
             'authorization', 'auth', 'authenticate', 'authentication',
-            
-            // User Attributes
             'id', 'name', 'role', 'first_name', 'last_name', 'username',
             'user_id', 'user_name', 'user_role', 'email', 'phone',
             'profile', 'account', 'member', 'employee', 'staff',
-            
-            // Access Control
             'root', 'sudo', 'superuser', 'super_user', 'administrator',
             'dashboard', 'control_panel', 'controlpanel', 'cpanel',
             'webadmin', 'web_admin', 'admin_panel', 'adminpanel',
-            
-            // Database
             'database', 'db_user', 'db_password', 'dbpass', 'dbname',
             'connection_string', 'connectionstring', 'mongodb_uri', 'mysql',
             'postgresql', 'redis_url', 'redisurl', 'database_url',
-            
-            // Security & Secrets
             'secret', 'secrets', 'api_key', 'apikey', 'api_secret', 'apisecret',
             'access_token', 'accesstoken', 'refresh_token', 'refreshtoken',
             'private_key', 'privatekey', 'public_key', 'publickey',
             'certificate', 'pem', 'key', 'keys', 'token', 'tokens',
             'jwt_secret', 'jwtsecret', 'session_secret', 'cookie_secret',
             'encryption_key', 'encryptionkey', 'crypto_key', 'cryptokey',
-            
-            // Services & Integration
             'smtp', 'mailer', 'email_password', 'emailpassword',
             'sendgrid', 'mailgun', 'aws_access_key', 'aws_secret',
             's3_bucket', 's3bucket', 'azure_key', 'azurekey',
             'stripe_key', 'stripekey', 'paypal_key', 'paypalkey',
             'merchant_id', 'merchantid', 'oauth_secret', 'oauthsecret',
             'firebase', 'firebase_config', 'firebaseconfig',
-            
-            // Development & Debug
             'debug', 'test_mode', 'development', 'staging', 'production',
             'dev_mode', 'debug_mode', 'verbose', 'logging', 'log_level',
-            
-            // Dangerous Functions
             'backdoor', 'shell', 'exec', 'eval', 'system_call', 'systemcall',
             'passthru', 'popen', 'proc_open', 'shell_exec',
-            
-            // API Documentation
             'swagger', 'api_docs', 'apidocs', 'redoc', 'graphql', 'rest_api',
-            'restapi','swagger-ui/index.html','swagger-ui.html','swagger-ui','api' ,'openapi', 'api/docs' ,'api-docs','api_spec', 'apispec',
-            
-            // User Related
+            'restapi','swagger-ui/index.html','swagger-ui.html','swagger-ui','api','openapi','api/docs','api-docs','api_spec','apispec',
             'user_id', 'uid', 'admin_id', 'adminid', 'role_id', 'roleid',
             'permission_id', 'permissionid', 'user_role_id', 'userroleid'
         ],
-        
-        // API endpoint patterns (case-insensitive by using regex flags)
         apiPatterns: [
-            // Modern API patterns
             /\/api(?:\/v\d+)?\/[^\s"',<>(){}]+/gi,
             /\/(graphql|rest|rpc|admin|debug|swagger|docs|redoc)[^\s"',<>(){}]+/gi,
             /\/v\d+\/[^\s"',<>(){}]+/gi,
@@ -114,56 +86,34 @@
             /\/user(?:s)?\/[^\s"',<>(){}]+/gi,
             /\/role(?:s)?\/[^\s"',<>(){}]+/gi,
             /\/admin(?:s)?\/[^\s"',<>(){}]+/gi,
-            
-            // Modern microservice patterns
             /\/(service|microservice|api-gateway|gateway)\/[^\s"',<>(){}]+/gi,
             /\/(internal|private|external)\/(api|service)\/[^\s"',<>(){}]+/gi,
             /\/(health|status|ping|ready|alive)\/[^\s"',<>(){}]+/gi,
             /\/(metrics|prometheus|monitoring|telemetry)\/[^\s"',<>(){}]+/gi,
             /\/(config|configuration|settings)\/[^\s"',<>(){}]+/gi,
-            
-            // Cloud service patterns
             /\/(aws|azure|gcp|firebase)\/[^\s"',<>(){}]+/gi,
             /\/(lambda|function|serverless)\/[^\s"',<>(){}]+/gi,
             /\/(storage|bucket|cdn|asset)\/[^\s"',<>(){}]+/gi,
-            
-            // Modern web app patterns
             /\/(next|nuxt|remix)\/(api|route)\/[^\s"',<>(){}]+/gi,
             /\/(app|web|client)\/(api|v\d+)\/[^\s"',<>(){}]+/gi,
             /\/_next\/api\/[^\s"',<>(){}]+/gi,
             /\/__webpack?__\/[^\s"',<>(){}]+/gi,
-            
-            // Database and caching
             /\/(db|database|cache|redis|mongo)\/[^\s"',<>(){}]+/gi,
             /\/(query|mutation|subscription)\/[^\s"',<>(){}]+/gi,
-            
-            // Security and auth
             /\/(login|logout|signin|signup|register)\/[^\s"',<>(){}]+/gi,
             /\/(token|jwt|session|cookie)\/[^\s"',<>(){}]+/gi,
             /\/(2fa|mfa|totp|verification)\/[^\s"',<>(){}]+/gi,
-            
-            // File and media
             /\/(upload|download|file|media|image|document)\/[^\s"',<>(){}]+/gi,
             /\/(static|assets|public|resources)\/[^\s"',<>(){}]+/gi,
-            
-            // Admin and management
             /\/(manage|management|control|panel|dashboard)\/[^\s"',<>(){}]+/gi,
             /\/(settings|config|preferences|profile)\/[^\s"',<>(){}]+/gi,
-            
-            // E-commerce and payment
             /\/(payment|checkout|order|cart|billing)\/[^\s"',<>(){}]+/gi,
             /\/(stripe|paypal|square|braintree)\/[^\s"',<>(){}]+/gi,
-            
-            // Social and communication
             /\/(chat|message|notification|feed|social)\/[^\s"',<>(){}]+/gi,
             /\/(friend|follow|like|share|comment)\/[^\s"',<>(){}]+/gi,
-            
-            // Analytics and tracking
             /\/(analytics|tracking|pixel|event|log)\/[^\s"',<>(){}]+/gi,
             /\/(beacon|telemetry|insight|report)\/[^\s"',<>(){}]+/gi
         ],
-        
-        // Sensitive data patterns with case-insensitive matching
         sensitivePatterns: [
             { regex: /(?:api[_-]?key|apikey|api_key)\s*[:=]\s*['"]?([A-Za-z0-9+/]{20,})['"]?/gi, type: 'API Key' },
             { regex: /sk-[a-zA-Z0-9]{48}/gi, type: 'OpenAI Secret Key' },
@@ -185,8 +135,6 @@
             { regex: /db_password\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'Database Password' },
             { regex: /user_role\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'User Role Assignment' }
         ],
-        
-        // Role-specific patterns for detection
         rolePatterns: [
             /role\s*[:=]\s*['"]([^'"]+)['"]/gi,
             /user_role\s*[:=]\s*['"]([^'"]+)['"]/gi,
@@ -201,7 +149,6 @@
         ]
     };
     
-    // ==================== DATA STORAGE ====================
     const findings = {
         endpoints: new Set(),
         sensitiveData: [],
@@ -211,10 +158,9 @@
         swaggerUrls: new Set(),
         emails: new Set(),
         hardcodedSecrets: [],
-        keywordMatches: new Map() // Store case-insensitive keyword matches with context
+        keywordMatches: new Map()
     };
     
-    // ==================== UI COMPONENT ====================
     class ReconPanel {
         constructor() {
             this.panel = null;
@@ -317,7 +263,6 @@
             this.content = this.panel.querySelector('#results-content');
             this.resultsContainer = this.panel.querySelector('#results-container');
             
-            // Event listeners
             this.panel.querySelector('#expand-results').onclick = () => this.toggleResults();
             this.panel.querySelector('#cancel-scan').onclick = () => this.destroy();
             
@@ -354,7 +299,9 @@
             this.findingsCount = count;
         }
         
-        addFinding(category, title, details, severity = 'info') {
+        // incrementBadge=true  → used during live scan to count findings as they arrive
+        // incrementBadge=false → used by renderResults() so re-opening the panel doesn't inflate the counter
+        addFinding(category, title, details, severity = 'info', incrementBadge = true) {
             const severityColors = {
                 critical: '#ff4444',
                 high: '#ff8844',
@@ -363,7 +310,6 @@
                 info: '#44aaff'
             };
             
-            const findingId = `finding-${Date.now()}-${Math.random()}`;
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = `
                 <div style="
@@ -397,9 +343,15 @@
                     </details>
                 </div>
             `;
-            
-            this.content.appendChild(tempDiv.firstChild);
-            this.updateBadge(this.findingsCount + 1);
+
+            // ✅ FIX: firstElementChild skips the leading whitespace text node
+            //    that innerHTML produces before the <div>, so the card is now
+            //    actually appended and becomes visible in the panel.
+            this.content.appendChild(tempDiv.firstElementChild);
+
+            if (incrementBadge) {
+                this.updateBadge(this.findingsCount + 1);
+            }
             
             if (this.isExpanded) {
                 this.resultsContainer.scrollTop = this.resultsContainer.scrollHeight;
@@ -407,84 +359,78 @@
         }
         
         renderResults() {
-            console.log('renderResults called, findings:', findings);
-            
             this.content.innerHTML = '';
             
-            // Ensure findings is properly initialized
             if (!findings) {
-                console.error('Findings object is not defined');
-                this.addFinding('ERROR', 'No findings data available', 'The scan may not have completed properly.', 'critical');
+                this.addFinding('ERROR', 'No findings data available', 'The scan may not have completed properly.', 'critical', false);
                 return;
             }
             
-            // Summary
             const totalFindings = (findings.endpoints?.size || 0) + (findings.sensitiveData?.length || 0) + 
                                   (findings.adminContent?.size || 0) + (findings.keywordMatches?.size || 0);
             
-            this.addFinding('SUMMARY', 'Scan Complete', `
-                Total Findings: ${totalFindings}
-                ├─ API Endpoints: ${findings.endpoints?.size || 0}
-                ├─ Sensitive Data: ${findings.sensitiveData?.length || 0}
-                ├─ Admin/Role Keywords: ${findings.keywordMatches?.size || 0}
-                ├─ Emails Found: ${findings.emails?.size || 0}
-                ├─ Hardcoded Secrets: ${findings.hardcodedSecrets?.length || 0}
-                └─ User Roles Found: ${findings.rolesFound?.size || 0}
-            `, 'info');
+            this.addFinding('SUMMARY', 'Scan Complete', `Total Findings: ${totalFindings}
+├─ API Endpoints: ${findings.endpoints?.size || 0}
+├─ Sensitive Data: ${findings.sensitiveData?.length || 0}
+├─ Admin/Role Keywords: ${findings.keywordMatches?.size || 0}
+├─ Emails Found: ${findings.emails?.size || 0}
+├─ Hardcoded Secrets: ${findings.hardcodedSecrets?.length || 0}
+└─ User Roles Found: ${findings.rolesFound?.size || 0}`, 'info', false);
             
-            // API Endpoints
             if (findings.endpoints?.size > 0) {
                 const endpointArray = Array.from(findings.endpoints);
                 this.addFinding('ENDPOINTS', `${findings.endpoints.size} API Endpoints Found`, 
                     endpointArray.slice(0, 20).join('\n') + 
                     (findings.endpoints.size > 20 ? `\n... and ${findings.endpoints.size - 20} more` : ''), 
-                    'high'
+                    'high', false
                 );
             }
             
-            // Sensitive Data
             if (findings.sensitiveData?.length > 0) {
                 const sensitiveArray = findings.sensitiveData.slice(0, 15);
                 this.addFinding('SENSITIVE DATA', `${findings.sensitiveData.length} Items Found`,
                     sensitiveArray.map(d => `${d.type}: ${d.value}`).join('\n'),
-                    'critical'
+                    'critical', false
                 );
             }
             
-            // Keyword Matches
             if (findings.keywordMatches?.size > 0) {
                 const keywordArray = Array.from(findings.keywordMatches.keys());
                 this.addFinding('ADMIN/ROLE KEYWORDS', `${findings.keywordMatches.size} Keywords Found`,
                     keywordArray.slice(0, 20).join('\n'),
-                    'high'
+                    'high', false
                 );
             }
             
-            // Emails
             if (findings.emails?.size > 0) {
                 const emailArray = Array.from(findings.emails);
                 this.addFinding('EMAILS', `${findings.emails.size} Email Addresses Found`,
                     emailArray.slice(0, 15).join('\n'),
-                    'medium'
+                    'medium', false
                 );
             }
             
-            // Swagger/API Docs
             if (findings.swaggerUrls?.size > 0) {
                 const swaggerArray = Array.from(findings.swaggerUrls);
                 this.addFinding('API DOCS', 'Swagger/OpenAPI Endpoints',
                     swaggerArray.join('\n'),
-                    'high'
+                    'high', false
                 );
             }
             
-            // Hardcoded Secrets
             if (findings.hardcodedSecrets?.length > 0) {
                 const secretsArray = findings.hardcodedSecrets.slice(0, 10);
                 this.addFinding('HARDCODED SECRETS', `${findings.hardcodedSecrets.length} Secrets Found`,
                     secretsArray.map(s => `${s.type}: ${s.value}`).join('\n'),
-                    'critical'
+                    'critical', false
                 );
+            }
+
+            if (totalFindings === 0 && (findings.emails?.size || 0) === 0 &&
+                (findings.swaggerUrls?.size || 0) === 0 && (findings.hardcodedSecrets?.length || 0) === 0) {
+                this.addFinding('INFO', 'No findings yet',
+                    'Scan may still be in progress, or nothing was detected on this page.',
+                    'info', false);
             }
         }
         
@@ -503,10 +449,8 @@
         }
     }
     
-    // ==================== CORE FUNCTIONALITY ====================
     const panel = new ReconPanel();
     
-    // ==================== STEALTH FUNCTIONS ====================
     function getRandomDelay() {
         if (CONFIG.stealth.randomizeDelay) {
             return Math.random() * (CONFIG.stealth.maxDelay - CONFIG.stealth.minDelay) + CONFIG.stealth.minDelay;
@@ -516,7 +460,6 @@
     
     function simulateHumanBehavior() {
         if (CONFIG.stealth.simulateHumanBehavior) {
-            // Add random small delays to simulate human interaction
             return Math.random() * 100 + 50;
         }
         return 0;
@@ -524,303 +467,150 @@
     
     function antiDetection() {
         if (CONFIG.stealth.antiDetection) {
-            // Clear console traces periodically
-            if (Math.random() < 0.1) {
-                console.clear();
-            }
-            // Randomize timing patterns
+            if (Math.random() < 0.1) console.clear();
             return Math.random() * 200;
         }
         return 0;
     }
     
-    // ==================== CORE ANALYSIS FUNCTIONS ====================
-    // Case-insensitive keyword search in content
     function searchKeywordsCaseInsensitive(content, sourceUrl) {
-        // Create a case-insensitive regex for each keyword
         CONFIG.keywords.forEach(keyword => {
-            // Create regex that matches the keyword in any case
             const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
             let match;
             let matchCount = 0;
-            
             while ((match = regex.exec(content)) !== null) {
                 matchCount++;
-                // Get context (surrounding text)
                 const start = Math.max(0, match.index - 80);
                 const end = Math.min(content.length, match.index + 120);
-                let context = content.substring(start, end);
-                
-                // Clean up context
-                context = context.replace(/\n/g, ' ').trim();
-                
-                // Store the finding with context
-                if (!findings.keywordMatches.has(keyword)) {
-                    findings.keywordMatches.set(keyword, []);
-                }
+                let context = content.substring(start, end).replace(/\n/g, ' ').trim();
+                if (!findings.keywordMatches.has(keyword)) findings.keywordMatches.set(keyword, []);
                 findings.keywordMatches.get(keyword).push(context);
-                
-                // Add to admin content for display
                 findings.adminContent.set(`${keyword.toUpperCase()} found in ${sourceUrl.split('/').pop()}: ${context.substring(0, 150)}`, true);
             }
-            
-            if (matchCount > 0) {
-                console.log(`[CASE-INSENSITIVE] Found "${keyword}" (${matchCount}x) in ${sourceUrl}`);
-            }
+            if (matchCount > 0) console.log(`[CASE-INSENSITIVE] Found "${keyword}" (${matchCount}x) in ${sourceUrl}`);
         });
     }
     
-    // Fetch and analyze JavaScript files
     async function fetchAndAnalyzeJS(url) {
         if (findings.jsFiles.has(url)) return;
-        
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
-                method: 'GET',
-                url: url,
-                timeout: 10000,
+                method: 'GET', url, timeout: 10000,
                 onload: function(response) {
                     if (response.status === 200 && response.responseText) {
                         const content = response.responseText;
-                        const size = content.length;
-                        
-                        if (size > CONFIG.maxJSSize) {
-                            panel.updateStatus(`Skipping large JS: ${url.substring(0, 80)}...`);
-                            resolve();
-                            return;
-                        }
-                        
-                        findings.jsFiles.set(url, {
-                            size: size,
-                            analyzed: true
-                        });
-                        
+                        if (content.length > CONFIG.maxJSSize) { panel.updateStatus(`Skipping large JS: ${url.substring(0, 80)}...`); resolve(); return; }
+                        findings.jsFiles.set(url, { size: content.length, analyzed: true });
                         panel.updateStatus(`Analyzing: ${url.split('/').pop()}`);
-                        
-                        // Analyze JS content
                         analyzeJSContent(content, url);
                     }
                     resolve();
                 },
-                onerror: function() {
-                    resolve();
-                }
+                onerror: () => resolve()
             });
         });
     }
     
-    // Analyze JavaScript content
     function analyzeJSContent(content, sourceUrl) {
-        // Search for keywords using case-insensitive search
         searchKeywordsCaseInsensitive(content, sourceUrl);
-        
-        // Search for API endpoints
-        CONFIG.apiPatterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(content)) !== null) {
-                findings.endpoints.add(match[0]);
-            }
-        });
-        
-        // Search for Swagger/API docs
+        CONFIG.apiPatterns.forEach(pattern => { let m; while ((m = pattern.exec(content)) !== null) findings.endpoints.add(m[0]); });
         const swaggerPatterns = [/swagger/gi, /openapi/gi, /api-docs/gi, /redoc/gi];
         swaggerPatterns.forEach(pattern => {
             if (pattern.test(content)) {
                 const matches = content.match(/["'](\/[^"']*(?:swagger|openapi|api-docs)[^"']*)["']/gi);
-                if (matches) {
-                    matches.forEach(m => {
-                        const url = m.replace(/["']/g, '');
-                        findings.swaggerUrls.add(url);
-                        findings.endpoints.add(url);
-                    });
-                }
+                if (matches) matches.forEach(m => { const u = m.replace(/["']/g, ''); findings.swaggerUrls.add(u); findings.endpoints.add(u); });
             }
         });
-        
-        // Search for sensitive data
         CONFIG.sensitivePatterns.forEach(({regex, type}) => {
             let match;
             while ((match = regex.exec(content)) !== null) {
                 const value = match[1] || match[0];
-                findings.sensitiveData.push({
-                    type: type,
-                    value: value.substring(0, 100),
-                    source: sourceUrl,
-                    full: value
-                });
-                
-                if (type === 'Email Address') {
-                    findings.emails.add(value);
-                }
-                
-                if (type.includes('Key') || type.includes('Token') || type.includes('Secret')) {
-                    findings.hardcodedSecrets.push({
-                        type: type,
-                        value: value.substring(0, 50),
-                        source: sourceUrl
-                    });
-                }
+                findings.sensitiveData.push({ type, value: value.substring(0, 100), source: sourceUrl, full: value });
+                if (type === 'Email Address') findings.emails.add(value);
+                if (type.includes('Key') || type.includes('Token') || type.includes('Secret'))
+                    findings.hardcodedSecrets.push({ type, value: value.substring(0, 50), source: sourceUrl });
             }
         });
-        
-        // Additional: Find role-related patterns
         const rolePatterns = [/role\s*[:=]\s*['"]([^'"]+)['"]/gi, /user_role\s*[:=]\s*['"]([^'"]+)['"]/gi, /is_admin\s*[:=]\s*(true|false)/gi];
-        rolePatterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(content)) !== null) {
-                findings.rolesFound.add(match[1] || match[0]);
-            }
-        });
+        rolePatterns.forEach(pattern => { let m; while ((m = pattern.exec(content)) !== null) findings.rolesFound.add(m[1] || m[0]); });
     }
     
-    // Extract JS files from page
     function extractJSFiles() {
         const jsUrls = new Set();
-        const scripts = document.querySelectorAll('script[src]');
-        
-        scripts.forEach(script => {
+        document.querySelectorAll('script[src]').forEach(script => {
             let src = script.src;
-            if (src && !CONFIG.ignoreDomains.some(domain => src.includes(domain))) {
-                if (src.startsWith('/')) {
-                    src = window.location.origin + src;
-                } else if (src.startsWith('./')) {
-                    src = window.location.href + src.substring(1);
-                } else if (!src.startsWith('http')) {
-                    src = window.location.origin + '/' + src;
-                }
+            if (src && !CONFIG.ignoreDomains.some(d => src.includes(d))) {
+                if (src.startsWith('/')) src = window.location.origin + src;
+                else if (src.startsWith('./')) src = window.location.href + src.substring(1);
+                else if (!src.startsWith('http')) src = window.location.origin + '/' + src;
                 jsUrls.add(src);
             }
         });
-        
-        // Also find JS files in page content
         const pageContent = document.documentElement.innerHTML;
-        const jsPatterns = [/src=["']([^"']*\.js[^"']*)["']/g, /href=["']([^"']*\.js[^"']*)["']/g];
-        jsPatterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(pageContent)) !== null) {
-                let url = match[1];
-                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(domain => url.includes(domain))) {
+        [/src=["']([^"']*\.js[^"']*)["']/g, /href=["']([^"']*\.js[^"']*)["']/g].forEach(pattern => {
+            let m;
+            while ((m = pattern.exec(pageContent)) !== null) {
+                let url = m[1];
+                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d))) {
                     if (url.startsWith('/')) url = window.location.origin + url;
                     else if (!url.startsWith('http')) url = window.location.origin + '/' + url;
                     jsUrls.add(url);
                 }
             }
         });
-        
         return jsUrls;
     }
     
-    // Analyze HTML/DOM for sensitive content
     function analyzeDOM() {
         panel.updateStatus('Analyzing DOM structure...');
-        
         const htmlContent = document.documentElement.innerHTML;
-        
-        // Search HTML for keywords
         CONFIG.keywords.forEach(keyword => {
             const regex = new RegExp(`${keyword}[^<]*`, 'gi');
-            let match;
-            while ((match = regex.exec(htmlContent)) !== null) {
-                findings.adminContent.set(`${keyword.toUpperCase()} in HTML: ${match[0].substring(0, 150)}...`, true);
-            }
+            let m;
+            while ((m = regex.exec(htmlContent)) !== null)
+                findings.adminContent.set(`${keyword.toUpperCase()} in HTML: ${m[0].substring(0, 150)}...`, true);
         });
-        
-        // Search for emails (excluding personal providers)
         const emailPattern = /[a-zA-Z0-9._%+-]+@(?!gmail\.com|yahoo\.com|hotmail\.com|outlook\.com|aol\.com|icloud\.com)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        let match;
-        while ((match = emailPattern.exec(htmlContent)) !== null) {
-            findings.emails.add(match[0]);
-            findings.sensitiveData.push({
-                type: 'Email Address',
-                value: match[0],
-                source: 'HTML DOM'
-            });
+        let m;
+        while ((m = emailPattern.exec(htmlContent)) !== null) {
+            findings.emails.add(m[0]);
+            findings.sensitiveData.push({ type: 'Email Address', value: m[0], source: 'HTML DOM' });
         }
-        
-        // Search for meta tags with sensitive info
-        const metaTags = document.querySelectorAll('meta[name*="api"], meta[name*="key"], meta[content*="token"]');
-        metaTags.forEach(tag => {
-            findings.sensitiveData.push({
-                type: 'Meta Tag',
-                value: `${tag.getAttribute('name')}=${tag.getAttribute('content')}`,
-                source: 'HTML Meta'
-            });
+        document.querySelectorAll('meta[name*="api"], meta[name*="key"], meta[content*="token"]').forEach(tag =>
+            findings.sensitiveData.push({ type: 'Meta Tag', value: `${tag.getAttribute('name')}=${tag.getAttribute('content')}`, source: 'HTML Meta' }));
+        document.querySelectorAll('input[type="hidden"]').forEach(input => {
+            if (input.value && input.value.length > 10)
+                findings.sensitiveData.push({ type: 'Hidden Input', value: `${input.name}=${input.value.substring(0, 100)}`, source: 'DOM Hidden Field' });
         });
-        
-        // Search for hidden inputs with sensitive values
-        const hiddenInputs = document.querySelectorAll('input[type="hidden"]');
-        hiddenInputs.forEach(input => {
-            if (input.value && input.value.length > 10) {
-                findings.sensitiveData.push({
-                    type: 'Hidden Input',
-                    value: `${input.name}=${input.value.substring(0, 100)}`,
-                    source: 'DOM Hidden Field'
-                });
-            }
-        });
-        
-        // Search for data attributes with sensitive info
-        const dataElements = document.querySelectorAll('[data-api-key], [data-token], [data-secret]');
-        dataElements.forEach(el => {
-            findings.sensitiveData.push({
-                type: 'Data Attribute',
-                value: JSON.stringify(el.dataset),
-                source: 'DOM Data Attributes'
-            });
-        });
+        document.querySelectorAll('[data-api-key], [data-token], [data-secret]').forEach(el =>
+            findings.sensitiveData.push({ type: 'Data Attribute', value: JSON.stringify(el.dataset), source: 'DOM Data Attributes' }));
     }
     
-    // Analyze inline scripts
     function analyzeInlineScripts() {
         panel.updateStatus('Analyzing inline scripts...');
-        const scripts = document.querySelectorAll('script:not([src])');
-        
-        scripts.forEach((script, index) => {
+        document.querySelectorAll('script:not([src])').forEach((script, index) => {
             const content = script.textContent;
-            if (content && content.length > 0 && content.length < 500000) {
-                analyzeJSContent(content, `inline-script-${index}`);
-            }
+            if (content && content.length > 0 && content.length < 500000) analyzeJSContent(content, `inline-script-${index}`);
         });
     }
     
-    // Main reconnaissance function
     async function startRecon() {
         panel.create();
         panel.updateStatus('Starting security reconnaissance...');
-        
-        // Analyze DOM first
         analyzeDOM();
-        
-        // Analyze inline scripts
         analyzeInlineScripts();
-        
-        // Extract and analyze external JS files
         const jsFiles = extractJSFiles();
         panel.updateStatus(`Found ${jsFiles.size} JavaScript files to analyze...`);
-        
         let analyzed = 0;
         for (const jsUrl of jsFiles) {
             await fetchAndAnalyzeJS(jsUrl);
             analyzed++;
             panel.updateStatus(`Analyzed ${analyzed}/${jsFiles.size} JS files...`);
-            
-            // Throttle requests
             await new Promise(resolve => setTimeout(resolve, CONFIG.throttleRequests / 10));
         }
-        
-        // Search for endpoints in page content
         const pageText = document.documentElement.innerHTML;
-        CONFIG.apiPatterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(pageText)) !== null) {
-                findings.endpoints.add(match[0]);
-            }
-        });
-        
-        // Final summary
+        CONFIG.apiPatterns.forEach(pattern => { let m; while ((m = pattern.exec(pageText)) !== null) findings.endpoints.add(m[0]); });
         panel.updateStatus('Scan complete! Click RESULTS to view findings.');
-        
-        // Add to console for devtools
         console.groupCollapsed('%c Security Recon Results', 'color: #00ff9d; font-size: 14px; font-weight: bold');
         console.log('API Endpoints:', Array.from(findings.endpoints));
         console.log('Sensitive Data:', findings.sensitiveData);
@@ -828,32 +618,14 @@
         console.log('Emails:', Array.from(findings.emails));
         console.log('JS Files Analyzed:', Array.from(findings.jsFiles.keys()));
         console.groupEnd();
-        
-        // Flash notification
-        if (findings.sensitiveData.length > 0 || findings.keywordMatches.size > 0) {
+        if (findings.sensitiveData.length > 0 || findings.keywordMatches.size > 0)
             panel.updateStatus(`! Found ${findings.sensitiveData.length + findings.keywordMatches.size} potential vulnerabilities!`, true);
-        }
     }
     
-    // ==================== INITIALIZATION ====================
     function init() {
-        // Initialize findings with default values to prevent undefined errors
-        if (!findings.keywordMatches) findings.keywordMatches = new Map();
-        if (!findings.endpoints) findings.endpoints = new Set();
-        if (!findings.sensitiveData) findings.sensitiveData = [];
-        if (!findings.emails) findings.emails = new Set();
-        if (!findings.rolesFound) findings.rolesFound = new Set();
-        if (!findings.jsFiles) findings.jsFiles = new Map();
-        if (!findings.adminContent) findings.adminContent = new Map();
-        if (!findings.swaggerUrls) findings.swaggerUrls = new Set();
-        if (!findings.hardcodedSecrets) findings.hardcodedSecrets = [];
-        
         const delay = getRandomDelay() + simulateHumanBehavior() + antiDetection();
-        
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(startRecon, delay);
-            });
+            document.addEventListener('DOMContentLoaded', () => setTimeout(startRecon, delay));
         } else {
             setTimeout(startRecon, delay);
         }
@@ -861,9 +633,6 @@
     
     init();
     
-    // Cleanup
-    window.addEventListener('beforeunload', () => {
-        if (panel.panel) panel.panel.remove();
-    });
+    window.addEventListener('beforeunload', () => { if (panel.panel) panel.panel.remove(); });
     
 })();
