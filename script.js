@@ -11,7 +11,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @run-at       document-start
-// @noframes
+// @noframes    
 // ==/UserScript==
 
 (function() {
@@ -537,9 +537,12 @@
     
     function extractJSFiles() {
         const jsUrls = new Set();
+        // Regex to match chunk files: chunk-*.js, *.chunk.js, [hash].js patterns
+        const chunkPattern = /chunk[-.]|\.[a-f0-9]{8,}\.js|_[a-f0-9]{8,}\.js/;
+        
         document.querySelectorAll('script[src]').forEach(script => {
             let src = script.src;
-            if (src && !CONFIG.ignoreDomains.some(d => src.includes(d))) {
+            if (src && !CONFIG.ignoreDomains.some(d => src.includes(d)) && !chunkPattern.test(src)) {
                 if (src.startsWith('/')) src = window.location.origin + src;
                 else if (src.startsWith('./')) src = window.location.href + src.substring(1);
                 else if (!src.startsWith('http')) src = window.location.origin + '/' + src;
@@ -547,11 +550,11 @@
             }
         });
         const pageContent = document.documentElement.innerHTML;
-        [/src=["']([^"']*\.js[^"']*)["']/g, /href=["']([^"']*\.js[^"']*)["']/g].forEach(pattern => {
+        [/src=["']([^"']*\.js[^"]*)["']/g, /href=["']([^"']*\.js[^"]*)["']/g].forEach(pattern => {
             let m;
             while ((m = pattern.exec(pageContent)) !== null) {
                 let url = m[1];
-                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d))) {
+                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d)) && !chunkPattern.test(url)) {
                     if (url.startsWith('/')) url = window.location.origin + url;
                     else if (!url.startsWith('http')) url = window.location.origin + '/' + url;
                     jsUrls.add(url);
