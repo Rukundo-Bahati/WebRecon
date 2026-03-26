@@ -786,11 +786,19 @@
             /\b[A-Z_]{1,10}\s*=\s*\[\s*["'][^"']+["'](?:\s*,\s*["'][^"']+["'])+\s*\]/gi // Match AI = ["...", "..."]
         ];
 
+        const isTechnicalArray = (text) => {
+            const techKeywords = ['"constructor"', '"hasOwnProperty"', '"isPrototypeOf"', '"propertyIsEnumerable"', '"toLocaleString"', '"toString"', '"valueOf"', '[object Int8Array]', '"DELETE"', '"GET"', '"POST"', '"PUT"'];
+            // If it has many technical keywords and NO email/human-like data, skip
+            let techCount = 0;
+            techKeywords.forEach(kw => { if (text.includes(kw)) techCount++; });
+            return techCount > 2 && !text.includes('@');
+        };
+
         userDataPatterns.forEach(pattern => {
             let match;
             while ((match = pattern.exec(content)) !== null) {
                 const matchedText = match[0];
-                if (matchedText.length < 1000 && matchedText.length > 20) {
+                if (matchedText.length < 1000 && matchedText.length > 20 && !isTechnicalArray(matchedText)) {
                     // Find line number
                     const lineNum = content.substring(0, match.index).split('\n').length;
                     const userDataMatch = `Line ${lineNum}: ${matchedText.trim().replace(/\s+/g, ' ').substring(0, 300)}`;
@@ -919,13 +927,9 @@
         // Search for sensitive data with line context
         const contentLines = content.split('\n');
         contentLines.forEach((line, lineNum) => {
-            // Skip minified/dense lines for personal information to avoid false positives
-            if ((line.length > 300 && !line.includes(' ')) || 
-                line.includes('webpackChunk') ||
-                line.includes('self.__next') ||
-                line.includes('!function') ||
-                line.includes('defineProperty') ||
-                line.includes('minified')) {
+            // Only skip lines that are purely obfuscated junk or giant polyfill wrappers
+            if ((line.length > 2000 && !line.includes(' ')) || 
+                (line.includes('!function') && line.includes('defineProperty') && line.length < 500)) {
                 return;
             }
 
@@ -992,12 +996,9 @@
         // Enhanced personal information extraction for all file types
         const lines = content.split('\n');
         lines.forEach((line, lineNum) => {
-            // Skip minified/dense lines for personal information to avoid false positives
-            if ((line.length > 300 && !line.includes(' ')) || 
-                line.includes('webpackChunk') ||
-                line.includes('self.__next') ||
-                line.includes('!function') ||
-                line.includes('defineProperty')) {
+            // Only skip lines that are purely obfuscated junk or giant polyfill wrappers
+            if ((line.length > 2000 && !line.includes(' ')) || 
+                (line.includes('!function') && line.includes('defineProperty') && line.length < 500)) {
                 return;
             }
 
