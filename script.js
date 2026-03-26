@@ -538,12 +538,12 @@
             
             if (findings.sensitiveData?.length > 0) {
                 const sensitiveArray = findings.sensitiveData.slice(0, 15);
-                const preview = sensitiveArray.map(d => `${d.type}: ${d.value}`).join('\n');
+                const preview = sensitiveArray.map(d => `${d.type}: ${d.value} (${d.source})`).join('\n');
                 const remaining = findings.sensitiveData.slice(15);
                 
                 this.addFinding('SENSITIVE DATA', `${findings.sensitiveData.length} Items Found`,
                     preview + (remaining.length > 0 ? `\n... and ${remaining.length} more` : ''),
-                    'critical', false, remaining.length > 0 ? remaining.map(d => `${d.type}: ${d.value}`) : null
+                    'critical', false, remaining.length > 0 ? remaining.map(d => `${d.type}: ${d.value} (${d.source})\n  Full: ${d.full || 'N/A'}`) : null
                 );
             }
             
@@ -888,7 +888,21 @@
         searchKeywordsCaseInsensitive(content, sourceUrl);
         
         // Search for API endpoints
-        CONFIG.apiPatterns.forEach(pattern => { let m; while ((m = pattern.exec(content)) !== null) findings.endpoints.add(m[0]); });
+        CONFIG.apiPatterns.forEach(pattern => { 
+            let m; 
+            while ((m = pattern.exec(content)) !== null) {
+                const endpoint = m[1] || m[0];
+                // Filter out minified/invalid endpoints
+                if (endpoint && endpoint.length < 200 && 
+                    !endpoint.includes('webpackChunk') && 
+                    !endpoint.includes('__next') && 
+                    !endpoint.includes('self.__next') &&
+                    !endpoint.includes('minified') &&
+                    (endpoint.includes('/') || endpoint.includes('http'))) {
+                    findings.endpoints.add(endpoint);
+                }
+            } 
+        });
         
         // Search for Swagger/API docs
         const swaggerPatterns = [/swagger/gi, /openapi/gi, /api-docs/gi, /redoc/gi];
@@ -940,58 +954,140 @@
         }
         
         // Enhanced personal information extraction for all file types
-        const personalInfoPatterns = [
-            // Extract emails from user objects
-            /\{[^}]*email:\s*["']([^"']+)["'][^}]*\}/gi,
-            /email:\s*["']([^"']+)["']/gi,
-            /["']([^"']+@[^"']+\.[^"']+)["']/gi,
-            
-            // Extract names from user objects
-            /\{[^}]*name:\s*["']([^"']+)["'][^}]*\}/gi,
-            /\{[^}]*first_name:\s*["']([^"']+)["'][^}]*\}/gi,
-            /\{[^}]*last_name:\s*["']([^"']+)["'][^}]*\}/gi,
-            /name:\s*["']([^"']+)["']/gi,
-            /first_name:\s*["']([^"']+)["']/gi,
-            /last_name:\s*["']([^"']+)["']/gi,
-            
-            // Extract phone numbers
-            /\{[^}]*phone:\s*["']([^"']+)["'][^}]*\}/gi,
-            /\{[^}]*mobile:\s*["']([^"']+)["'][^}]*\}/gi,
-            /phone:\s*["']([^"']+)["']/gi,
-            /mobile:\s*["']([^"']+)["']/gi,
-            
-            // Extract user IDs
-            /\{[^}]*id:\s*["']?(\w+)["']?[^}]*\}/gi,
-            /\{[^}]*user_id:\s*["']?(\w+)["']?[^}]*\}/gi,
-            /id:\s*["']?(\w+)["']?/gi,
-            /user_id:\s*["']?(\w+)["']?/gi,
-            
-            // Extract usernames
-            /\{[^}]*username:\s*["']([^"']+)["'][^}]*\}/gi,
-            /username:\s*["']([^"']+)["']/gi
-        ];
-        
-        personalInfoPatterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(content)) !== null) {
-                const value = match[1] || match[0];
-                const type = pattern.source.includes('email') ? 'Email' :
-                           pattern.source.includes('name') ? 'Name' :
-                           pattern.source.includes('phone') || pattern.source.includes('mobile') ? 'Phone' :
-                           pattern.source.includes('id') ? 'User ID' :
-                           pattern.source.includes('username') ? 'Username' : 'Personal Info';
-                
-                findings.sensitiveData.push({ 
-                    type: type, 
-                    value: value.substring(0, 100), 
-                    source: sourceUrl 
-                });
-                
-                // Also add to emails collection if it's an email
-                if (type === 'Email' && value.includes('@')) {
-                    findings.emails.add(value);
-                }
+        const lines = content.split('\n');
+        lines.forEach((line, lineNum) => {
+            // Skip minified lines
+            if (line.length > 500 && !line.includes(' ') || 
+                line.includes('webpackChunk') || 
+                line.includes('__next_f') ||
+                line.includes('self.__next') ||
+                line.includes('use strict') && line.includes('webpackChunk')) {
+                return;
             }
+            
+            // Extract emails with context
+            const emailPatterns = [
+                /email:\s*["']([^"']+)["']/gi,
+                /["']([^"']+@[^"']+\.[^"']+)["']/gi,
+                /(?:user_email|contact_email)\s*[:=]\s*["']([^"']+)["']/gi
+            ];
+            
+            emailPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(line)) !== null) {
+                    const email = match[1];
+                    if (email && email.includes('@')) {
+                        findings.sensitiveData.push({ 
+                            type: 'Email', 
+                            value: email, 
+                            source: `${sourceUrl.split('/').pop()}:${lineNum + 1}`,
+                            full: `Line ${lineNum + 1}: ${line.trim()}`
+                        });
+                        findings.emails.add(email);
+                    }
+                }
+            });
+            
+            // Extract names with context
+            const namePatterns = [
+                /name:\s*["']([^"']+)["']/gi,
+                /first_name:\s*["']([^"']+)["']/gi,
+                /last_name:\s*["']([^"']+)["']/gi,
+                /full_name:\s*["']([^"']+)["']/gi,
+                /username:\s*["']([^"']+)["']/gi
+            ];
+            
+            namePatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(line)) !== null) {
+                    const name = match[1];
+                    if (name && name.length > 1 && name.length < 100) {
+                        const type = pattern.source.includes('first') ? 'First Name' :
+                                   pattern.source.includes('last') ? 'Last Name' :
+                                   pattern.source.includes('full') ? 'Full Name' :
+                                   pattern.source.includes('username') ? 'Username' : 'Name';
+                        
+                        findings.sensitiveData.push({ 
+                            type: type, 
+                            value: name, 
+                            source: `${sourceUrl.split('/').pop()}:${lineNum + 1}`,
+                            full: `Line ${lineNum + 1}: ${line.trim()}`
+                        });
+                    }
+                }
+            });
+            
+            // Extract phone numbers with context
+            const phonePatterns = [
+                /phone:\s*["']([^"']+)["']/gi,
+                /mobile:\s*["']([^"']+)["']/gi,
+                /telephone:\s*["']([^"']+)["']/gi,
+                /\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g
+            ];
+            
+            phonePatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(line)) !== null) {
+                    const phone = match[1] || match[0];
+                    if (phone && phone.length > 6 && phone.length < 25) {
+                        findings.sensitiveData.push({ 
+                            type: 'Phone Number', 
+                            value: phone, 
+                            source: `${sourceUrl.split('/').pop()}:${lineNum + 1}`,
+                            full: `Line ${lineNum + 1}: ${line.trim()}`
+                        });
+                    }
+                }
+            });
+            
+            // Extract user IDs with context
+            const idPatterns = [
+                /id:\s*["']?(\w+)["']?/gi,
+                /user_id:\s*["']?(\w+)["']?/gi,
+                /employee_id:\s*["']?(\w+)["']?/gi,
+                /customer_id:\s*["']?(\w+)["']?/gi
+            ];
+            
+            idPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(line)) !== null) {
+                    const id = match[1];
+                    if (id && id.length > 2 && id.length < 50 && !id.includes('className')) {
+                        findings.sensitiveData.push({ 
+                            type: 'User ID', 
+                            value: id, 
+                            source: `${sourceUrl.split('/').pop()}:${lineNum + 1}`,
+                            full: `Line ${lineNum + 1}: ${line.trim()}`
+                        });
+                    }
+                }
+            });
+            
+            // Extract complete user objects
+            const userObjectPatterns = [
+                /\{[^}]*email:\s*["']([^"']+)["'][^}]*\}/gi,
+                /\{[^}]*name:\s*["']([^"']+)["'][^}]*\}/gi,
+                /\{[^}]*phone:\s*["']([^"']+)["'][^}]*\}/gi
+            ];
+            
+            userObjectPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(line)) !== null) {
+                    const objectStr = match[0];
+                    if (objectStr.length < 200 && objectStr.includes('{') && objectStr.includes('}')) {
+                        const type = pattern.source.includes('email') ? 'User Object with Email' :
+                                   pattern.source.includes('name') ? 'User Object with Name' :
+                                   'User Object with Phone';
+                        
+                        findings.sensitiveData.push({ 
+                            type: type, 
+                            value: objectStr.substring(0, 100), 
+                            source: `${sourceUrl.split('/').pop()}:${lineNum + 1}`,
+                            full: `Line ${lineNum + 1}: ${line.trim()}`
+                        });
+                    }
+                }
+            });
         });
         
         // Search for role-related patterns
