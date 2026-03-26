@@ -26,6 +26,8 @@
         maxRequests: 10,
         analyzeJSFiles: true,
         maxJSSize: 5 * 1024 * 1024,
+        maxFileSize: 5 * 1024 * 1024,
+        supportedFileTypes: ['js', 'php', 'html', 'htm', 'json', 'xml', 'txt', 'conf', 'config', 'env', 'log'],
         ignoreDomains: ['google-analytics.com', 'doubleclick.net', 'googletagmanager.com'],
         stealth: {
             randomizeDelay: true,
@@ -75,9 +77,26 @@
             'swagger', 'api_docs', 'apidocs', 'redoc', 'graphql', 'rest_api',
             'restapi','swagger-ui/index.html','swagger-ui.html','swagger-ui','api','openapi','api/docs','api-docs','api_spec','apispec',
             'user_id', 'uid', 'admin_id', 'adminid', 'role_id', 'roleid',
-            'permission_id', 'permissionid', 'user_role_id', 'userroleid'
+            'permission_id', 'permissionid', 'user_role_id', 'userroleid',
+            
+            // PHP specific keywords
+            '$_SESSION', '$_COOKIE', '$_POST', '$_GET', '$_REQUEST', '$_SERVER',
+            'mysqli_query', 'mysql_query', 'pdo', 'database', 'db_connect', 'dbconn',
+            'include', 'require', 'include_once', 'require_once', 'file_get_contents',
+            'fopen', 'fwrite', 'file_put_contents', 'curl_exec', 'shell_exec',
+            'eval', 'assert', 'create_function', 'preg_replace', 'call_user_func',
+            'unserialize', 'extract', 'import_request_variables', 'mb_parse_str',
+            'password_hash', 'password_verify', 'hash', 'md5', 'sha1', 'crypt',
+            'session_start', 'session_destroy', 'session_regenerate_id',
+            'setcookie', 'header', 'http_response_code', 'base64_encode', 'base64_decode',
+            
+            // Enhanced patterns for specific detection
+            'adminStats', 'stats', 'fetch', 'endpoint', 'baseURL', 'apiUrl', 'serverUrl',
+            'user_data', 'userData', 'users', 'accounts', 'members', 'profiles',
+            'subdomain', 'domain', 'hostname', 'origin', 'host'
         ],
         apiPatterns: [
+            // Modern API patterns
             /\/api(?:\/v\d+)?\/[^\s"',<>(){}]+/gi,
             /\/(graphql|rest|rpc|admin|debug|swagger|docs|redoc)[^\s"',<>(){}]+/gi,
             /\/v\d+\/[^\s"',<>(){}]+/gi,
@@ -86,10 +105,6 @@
             /\/user(?:s)?\/[^\s"',<>(){}]+/gi,
             /\/role(?:s)?\/[^\s"',<>(){}]+/gi,
             /\/admin(?:s)?\/[^\s"',<>(){}]+/gi,
-            /\/(service|microservice|api-gateway|gateway)\/[^\s"',<>(){}]+/gi,
-            /\/(internal|private|external)\/(api|service)\/[^\s"',<>(){}]+/gi,
-            /\/(health|status|ping|ready|alive)\/[^\s"',<>(){}]+/gi,
-            /\/(metrics|prometheus|monitoring|telemetry)\/[^\s"',<>(){}]+/gi,
             /\/(config|configuration|settings)\/[^\s"',<>(){}]+/gi,
             /\/(aws|azure|gcp|firebase)\/[^\s"',<>(){}]+/gi,
             /\/(lambda|function|serverless)\/[^\s"',<>(){}]+/gi,
@@ -112,28 +127,95 @@
             /\/(chat|message|notification|feed|social)\/[^\s"',<>(){}]+/gi,
             /\/(friend|follow|like|share|comment)\/[^\s"',<>(){}]+/gi,
             /\/(analytics|tracking|pixel|event|log)\/[^\s"',<>(){}]+/gi,
-            /\/(beacon|telemetry|insight|report)\/[^\s"',<>(){}]+/gi
+            /\/(beacon|telemetry|insight|report)\/[^\s"',<>(){}]+/gi,
+            
+            // Enhanced patterns for specific cases
+            /url:\s*["']https?:\/\/[^"']+\/api\/[^"']+["']/gi,
+            /url:\s*["']https?:\/\/[^"']+\/admin\/[^"']+["']/gi,
+            /["']https?:\/\/[^"']*\/admin[^"']*["']/gi,
+            /["']https?:\/\/[^"']*\/api[^"']*["']/gi,
+            /["']https?:\/\/[^"']*\/role[^"']*["']/gi,
+            /["']https?:\/\/api\.[^"']+["']/gi,
+            /["']https?:\/\/admin\.[^"']+["']/gi,
+            /["']https?:\/\/[a-zA-Z0-9-]+\.[^"']+\/[^"']*["']/gi,
+            /\.get\s*\(\s*["']\/[^"']+["']/gi,
+            /\.post\s*\(\s*["']\/[^"']+["']/gi,
+            /\.put\s*\(\s*["']\/[^"']+["']/gi,
+            /\.delete\s*\(\s*["']\/[^"']+["']/gi,
+            /endpoint:\s*["']\/[^"']+["']/gi,
+            /baseURL:\s*["']https?:\/\/[^"']+["']/gi,
+            /apiUrl:\s*["']https?:\/\/[^"']+["']/gi,
+            /serverUrl:\s*["']https?:\/\/[^"']+["']/gi,
+            
+            // Auth and navigation patterns
+            /\.push\s*\(\s*["']\/auth\/[^"']+["']/gi,
+            /\.push\s*\(\s*["']\/login[^"']*["']/gi,
+            /\.push\s*\(\s*["']\/signup[^"']*["']/gi,
+            /\.push\s*\(\s*["']\/register[^"']*["']/gi,
+            /\.push\s*\(\s*["']\/signin[^"']*["']/gi,
+            /["']\/auth\/sign-up[^"']*["']/gi,
+            /["']\/auth\/signin[^"']*["']/gi,
+            /["']\/auth\/signup[^"']*["']/gi,
+            /["']\/auth\/register[^"']*["']/gi,
+            /["']\/auth\/login[^"']*["']/gi,
+            /["']\/auth\/logout[^"']*["']/gi,
+            /navigate\s*\(\s*["']\/auth\/[^"']+["']/gi,
+            /window\.location\s*=\s*["']\/auth\/[^"']+["']/gi,
+            /window\.location\.href\s*=\s*["']\/auth\/[^"']+["']/gi,
+            /href\s*=\s*["']\/auth\/[^"']+["']/gi,
+            /action\s*=\s*["']\/auth\/[^"']+["']/gi
         ],
         sensitivePatterns: [
             { regex: /(?:api[_-]?key|apikey|api_key)\s*[:=]\s*['"]?([A-Za-z0-9+/]{20,})['"]?/gi, type: 'API Key' },
             { regex: /sk-[a-zA-Z0-9]{48}/gi, type: 'OpenAI Secret Key' },
-            { regex: /AKIA[0-9A-Z]{16}/gi, type: 'AWS Access Key' },
             { regex: /ghp_[0-9a-zA-Z]{36}/gi, type: 'GitHub Personal Token' },
             { regex: /gho_[0-9a-zA-Z]{36}/gi, type: 'GitHub OAuth Token' },
             { regex: /eyJ[A-Za-z0-9-_]+?\.eyJ[A-Za-z0-9-_]+?\./g, type: 'JWT Token' },
             { regex: /-----BEGIN (?:RSA|PRIVATE|OPENSSH) KEY-----[\s\S]+?-----END (?:RSA|PRIVATE|OPENSSH) KEY-----/gi, type: 'Private Key' },
             { regex: /(?:mongodb|mysql|postgresql):\/\/[^\s"',<>]+/gi, type: 'Database URL' },
-            { regex: /redis:\/\/[^\s"',<>]+/gi, type: 'Redis URL' },
-            { regex: /(?:smtp|mail):\/\/[^\s"',<>]+/gi, type: 'SMTP URL' },
+            { regex: /(?:password|passwd|pwd)\s*[:=]\s*['"]([^"']{6,})['"]/gi, type: 'Password' },
+            { regex: /(?:token|bearer|auth)\s*[:=]\s*['"]([^"']{20,})['"]/gi, type: 'Auth Token' },
+            { regex: /(?:secret|private_key|secret_key)\s*[:=]\s*['"]([^"']{16,})['"]/gi, type: 'Secret' },
             { regex: /[a-zA-Z0-9._%+-]+@(?!gmail\.com|yahoo\.com|hotmail\.com|outlook\.com|aol\.com|icloud\.com)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, type: 'Email Address' },
-            { regex: /password\s*[:=]\s*['"]([^'"]{8,})['"]/gi, type: 'Password' },
-            { regex: /secret\s*[:=]\s*['"]([^'"]{8,})['"]/gi, type: 'Secret' },
-            { regex: /token\s*[:=]\s*['"]([A-Za-z0-9+/]{20,})['"]/gi, type: 'Token' },
-            { regex: /(?:stripe|paypal|braintree)_(?:key|secret)\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'Payment Key' },
-            { regex: /jwt_secret\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'JWT Secret' },
-            { regex: /session_secret\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'Session Secret' },
-            { regex: /db_password\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'Database Password' },
-            { regex: /user_role\s*[:=]\s*['"]([^'"]+)['"]/gi, type: 'User Role Assignment' }
+            
+            // Enhanced patterns for personal information
+            { regex: /(?:email|e_mail|email_address|user_email|contact_email)\s*[:=]\s*['"]([^"']+)["']/gi, type: 'Email Field' },
+            { regex: /(?:phone|mobile|telephone|contact_phone|user_phone)\s*[:=]\s*['"]([^"']+)["']/gi, type: 'Phone Number' },
+            { regex: /(?:name|full_name|first_name|last_name|user_name|username)\s*[:=]\s*['"]([^"']{2,})["']/gi, type: 'Personal Name' },
+            { regex: /(?:id|user_id|userid|uid|employee_id|customer_id)\s*[:=]\s*['"]?(\w+)["']?/gi, type: 'User ID' },
+            { regex: /(?:first_name|fname|firstname)\s*[:=]\s*['"]([^"']{2,})["']/gi, type: 'First Name' },
+            { regex: /(?:last_name|lname|lastname|surname)\s*[:=]\s*['"]([^"']{2,})["']/gi, type: 'Last Name' },
+            
+            // Phone number patterns
+            { regex: /\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g, type: 'Phone Number' },
+            { regex: /\+?[0-9]{1,3}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{4}/g, type: 'International Phone' },
+            { regex: /\+[0-9]{10,15}/g, type: 'Phone Number' },
+            
+            // User data patterns in arrays/objects
+            { regex: /\{[^}]*email[^}]*\}/gi, type: 'User Object with Email' },
+            { regex: /\{[^}]*phone[^}]*\}/gi, type: 'User Object with Phone' },
+            { regex: /\{[^}]*name[^}]*\}/gi, type: 'User Object with Name' },
+            
+            // ID patterns
+            { regex: /["']?[A-Z]{2,}\d{4,}["']?/g, type: 'Potential ID' },
+            { regex: /["']?\d{6,10}["']?/g, type: 'Numeric ID' },
+            
+            // Social Security Number patterns (be careful with privacy)
+            { regex: /\d{3}-\d{2}-\d{4}/g, type: 'SSN Pattern' },
+            
+            // Credit card patterns (be careful with privacy)
+            { regex: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b/g, type: 'Credit Card' },
+            
+            // PHP specific patterns
+            { regex: /\$db_(?:pass|password|pwd)\s*=\s*['"]([^'"]+)['"]/gi, type: 'PHP Database Password' },
+            { regex: /\$api_(?:key|secret|token)\s*=\s*['"]([^'"]+)['"]/gi, type: 'PHP API Key' },
+            { regex: /\$jwt_(?:secret|key)\s*=\s*['"]([^'"]+)['"]/gi, type: 'PHP JWT Secret' },
+            { regex: /\$session_(?:key|secret)\s*=\s*['"]([^'"]+)['"]/gi, type: 'PHP Session Secret' },
+            { regex: /\$encryption_(?:key|secret)\s*=\s*['"]([^'"]+)['"]/gi, type: 'PHP Encryption Key' },
+            { regex: /define\s*\(\s*['"](?:API_KEY|SECRET_KEY|DB_PASSWORD|JWT_SECRET)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/gi, type: 'PHP Defined Constant' },
+            { regex: /mysql_connect\s*\([^)]*['"]([^'"]+)['"][^)]*['"]([^'"]+)['"]/gi, type: 'MySQL Connection' },
+            { regex: /mysqli_connect\s*\([^)]*['"]([^'"]+)['"][^)]*['"]([^'"]+)['"]/gi, type: 'MySQLi Connection' },
+            { regex: /PDO\s*::\s*construct\s*\([^)]*['"]([^'"]+)['"]/gi, type: 'PDO Connection String' }
         ],
         rolePatterns: [
             /role\s*[:=]\s*['"]([^'"]+)['"]/gi,
@@ -301,7 +383,7 @@
         
         // incrementBadge=true  → used during live scan to count findings as they arrive
         // incrementBadge=false → used by renderResults() so re-opening the panel doesn't inflate the counter
-        addFinding(category, title, details, severity = 'info', incrementBadge = true) {
+        addFinding(category, title, details, severity = 'info', incrementBadge = true, fullData = null) {
             const severityColors = {
                 critical: '#ff4444',
                 high: '#ff8844',
@@ -309,6 +391,9 @@
                 low: '#88ff88',
                 info: '#44aaff'
             };
+            
+            const findingId = `finding-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const hasMoreData = fullData && fullData.length > 0;
             
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = `
@@ -327,19 +412,59 @@
                     <div style="color: #fff; margin-bottom: 5px;">${this.escapeHtml(title)}</div>
                     <details style="margin-top: 5px;">
                         <summary style="color: #00ff9d; cursor: pointer; font-size: 10px;">▼ Show details</summary>
-                        <pre style="
-                            background: rgba(0,0,0,0.6);
-                            padding: 8px;
-                            margin-top: 5px;
-                            border-radius: 4px;
-                            overflow-x: auto;
-                            font-size: 10px;
-                            color: #88ff88;
-                            white-space: pre-wrap;
-                            word-wrap: break-word;
-                            max-height: 300px;
-                            overflow-y: auto;
-                        ">${this.escapeHtml(details)}</pre>
+                        <div>
+                            <pre style="
+                                background: rgba(0,0,0,0.6);
+                                padding: 8px;
+                                margin-top: 5px;
+                                border-radius: 4px;
+                                overflow-x: auto;
+                                font-size: 10px;
+                                color: #88ff88;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                                max-height: 300px;
+                                overflow-y: auto;
+                            ">${this.escapeHtml(details)}</pre>
+                            ${hasMoreData ? `
+                                <div style="margin-top: 8px; text-align: center;">
+                                    <button id="${findingId}-more" style="
+                                        background: rgba(0, 255, 157, 0.2);
+                                        border: 1px solid #00ff9d;
+                                        color: #00ff9d;
+                                        padding: 4px 12px;
+                                        border-radius: 4px;
+                                        cursor: pointer;
+                                        font-size: 10px;
+                                        margin: 0 2px;
+                                    ">Show ${fullData.length} More</button>
+                                    <button id="${findingId}-all" style="
+                                        background: rgba(68, 170, 255, 0.2);
+                                        border: 1px solid #44aaff;
+                                        color: #44aaff;
+                                        padding: 4px 12px;
+                                        border-radius: 4px;
+                                        cursor: pointer;
+                                        font-size: 10px;
+                                        margin: 0 2px;
+                                    ">Show All</button>
+                                </div>
+                                <div id="${findingId}-expanded" style="display: none; margin-top: 8px;">
+                                    <pre style="
+                                        background: rgba(0,0,0,0.6);
+                                        padding: 8px;
+                                        border-radius: 4px;
+                                        overflow-x: auto;
+                                        font-size: 10px;
+                                        color: #88ff88;
+                                        white-space: pre-wrap;
+                                        word-wrap: break-word;
+                                        max-height: 400px;
+                                        overflow-y: auto;
+                                    ">${this.escapeHtml(fullData.join('\n'))}</pre>
+                                </div>
+                            ` : ''}
+                        </div>
                     </details>
                 </div>
             `;
@@ -348,6 +473,28 @@
             //    that innerHTML produces before the <div>, so the card is now
             //    actually appended and becomes visible in the panel.
             this.content.appendChild(tempDiv.firstElementChild);
+
+            // Add event listeners for "Show More" buttons
+            if (hasMoreData) {
+                const moreBtn = document.getElementById(`${findingId}-more`);
+                const allBtn = document.getElementById(`${findingId}-all`);
+                const expandedDiv = document.getElementById(`${findingId}-expanded`);
+                
+                if (moreBtn && expandedDiv) {
+                    moreBtn.addEventListener('click', () => {
+                        const currentDisplay = expandedDiv.style.display;
+                        expandedDiv.style.display = currentDisplay === 'none' ? 'block' : 'none';
+                        moreBtn.textContent = currentDisplay === 'none' ? 'Hide' : `Show ${fullData.length} More`;
+                    });
+                }
+                
+                if (allBtn && expandedDiv) {
+                    allBtn.addEventListener('click', () => {
+                        expandedDiv.style.display = expandedDiv.style.display === 'none' ? 'block' : 'none';
+                        allBtn.textContent = expandedDiv.style.display === 'none' ? 'Show All' : 'Hide All';
+                    });
+                }
+            }
 
             if (incrementBadge) {
                 this.updateBadge(this.findingsCount + 1);
@@ -379,50 +526,91 @@
             
             if (findings.endpoints?.size > 0) {
                 const endpointArray = Array.from(findings.endpoints);
+                const displayCount = 20;
+                const preview = endpointArray.slice(0, displayCount).join('\n');
+                const remaining = endpointArray.slice(displayCount);
+                
                 this.addFinding('ENDPOINTS', `${findings.endpoints.size} API Endpoints Found`, 
-                    endpointArray.slice(0, 20).join('\n') + 
-                    (findings.endpoints.size > 20 ? `\n... and ${findings.endpoints.size - 20} more` : ''), 
-                    'high', false
+                    preview + (remaining.length > 0 ? `\n... and ${remaining.length} more` : ''), 
+                    'high', false, remaining.length > 0 ? remaining : null
                 );
             }
             
             if (findings.sensitiveData?.length > 0) {
                 const sensitiveArray = findings.sensitiveData.slice(0, 15);
+                const preview = sensitiveArray.map(d => `${d.type}: ${d.value}`).join('\n');
+                const remaining = findings.sensitiveData.slice(15);
+                
                 this.addFinding('SENSITIVE DATA', `${findings.sensitiveData.length} Items Found`,
-                    sensitiveArray.map(d => `${d.type}: ${d.value}`).join('\n'),
-                    'critical', false
+                    preview + (remaining.length > 0 ? `\n... and ${remaining.length} more` : ''),
+                    'critical', false, remaining.length > 0 ? remaining.map(d => `${d.type}: ${d.value}`) : null
                 );
             }
             
             if (findings.keywordMatches?.size > 0) {
-                const keywordArray = Array.from(findings.keywordMatches.keys());
+                let keywordDetails = [];
+                let allKeywordDetails = [];
+                let itemCount = 0;
+                const maxPreview = 50;
+                
+                findings.keywordMatches.forEach((matches, keyword) => {
+                    keywordDetails.push(`\n${keyword.toUpperCase()} (${matches.length} matches):`);
+                    allKeywordDetails.push(`\n${keyword.toUpperCase()} (${matches.length} matches):`);
+                    
+                    matches.slice(0, 10).forEach(match => {
+                        if (itemCount < maxPreview) {
+                            keywordDetails.push(`  ${match}`);
+                        }
+                        allKeywordDetails.push(`  ${match}`);
+                        itemCount++;
+                    });
+                    
+                    if (matches.length > 10) {
+                        const moreText = `  ... and ${matches.length - 10} more`;
+                        if (itemCount < maxPreview) {
+                            keywordDetails.push(moreText);
+                        }
+                        allKeywordDetails.push(moreText);
+                    }
+                });
+                
+                const remainingKeywords = allKeywordDetails.slice(keywordDetails.length);
+                
                 this.addFinding('ADMIN/ROLE KEYWORDS', `${findings.keywordMatches.size} Keywords Found`,
-                    keywordArray.slice(0, 20).join('\n'),
-                    'high', false
+                    keywordDetails.join('\n'),
+                    'high', false, remainingKeywords.length > 0 ? remainingKeywords : null
                 );
             }
             
             if (findings.emails?.size > 0) {
                 const emailArray = Array.from(findings.emails);
+                const preview = emailArray.slice(0, 15).join('\n');
+                const remaining = emailArray.slice(15);
+                
                 this.addFinding('EMAILS', `${findings.emails.size} Email Addresses Found`,
-                    emailArray.slice(0, 15).join('\n'),
-                    'medium', false
+                    preview + (remaining.length > 0 ? `\n... and ${remaining.length} more` : ''),
+                    'medium', false, remaining.length > 0 ? remaining : null
                 );
             }
             
             if (findings.swaggerUrls?.size > 0) {
                 const swaggerArray = Array.from(findings.swaggerUrls);
+                const preview = swaggerArray.join('\n');
+                
                 this.addFinding('API DOCS', 'Swagger/OpenAPI Endpoints',
-                    swaggerArray.join('\n'),
-                    'high', false
+                    preview,
+                    'high', false, swaggerArray.length > 10 ? swaggerArray : null
                 );
             }
             
             if (findings.hardcodedSecrets?.length > 0) {
                 const secretsArray = findings.hardcodedSecrets.slice(0, 10);
+                const preview = secretsArray.map(s => `${s.type}: ${s.value}`).join('\n');
+                const remaining = findings.hardcodedSecrets.slice(10);
+                
                 this.addFinding('HARDCODED SECRETS', `${findings.hardcodedSecrets.length} Secrets Found`,
-                    secretsArray.map(s => `${s.type}: ${s.value}`).join('\n'),
-                    'critical', false
+                    preview + (remaining.length > 0 ? `\n... and ${remaining.length} more` : ''),
+                    'critical', false, remaining.length > 0 ? remaining.map(s => `${s.type}: ${s.value}`) : null
                 );
             }
 
@@ -474,24 +662,196 @@
     }
     
     function searchKeywordsCaseInsensitive(content, sourceUrl) {
-        CONFIG.keywords.forEach(keyword => {
-            const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-            let match;
-            let matchCount = 0;
-            while ((match = regex.exec(content)) !== null) {
-                matchCount++;
-                const start = Math.max(0, match.index - 80);
-                const end = Math.min(content.length, match.index + 120);
-                let context = content.substring(start, end).replace(/\n/g, ' ').trim();
-                if (!findings.keywordMatches.has(keyword)) findings.keywordMatches.set(keyword, []);
-                findings.keywordMatches.get(keyword).push(context);
-                findings.adminContent.set(`${keyword.toUpperCase()} found in ${sourceUrl.split('/').pop()}: ${context.substring(0, 150)}`, true);
+        // Skip minified/webpack content
+        if (content.includes('webpackChunk') || content.includes('__next_f') || 
+            content.includes('self.__next') || content.includes('webpackChunk_N_E') ||
+            content.includes('minified React error') || content.length > 100000) {
+            return;
+        }
+        
+        const lines = content.split('\n');
+        lines.forEach((line, lineNum) => {
+            // Skip minified lines (no spaces, very long, or contains webpack patterns)
+            if (line.length > 500 && !line.includes(' ') || 
+                line.includes('webpackChunk') || 
+                line.includes('__next_f') ||
+                line.includes('self.__next') ||
+                line.includes('use strict') && line.includes('webpackChunk')) {
+                return;
             }
-            if (matchCount > 0) console.log(`[CASE-INSENSITIVE] Found "${keyword}" (${matchCount}x) in ${sourceUrl}`);
+            
+            CONFIG.keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                if (regex.test(line)) {
+                    // Extract values for role-related keywords
+                    let extractedValue = '';
+                    if (keyword.includes('role') || keyword.includes('admin') || keyword.includes('permission') || keyword.includes('user')) {
+                        // Try to extract the value after the keyword with multiple patterns
+                        const valuePatterns = [
+                            new RegExp(`${keyword}\\s*[:=]\\s*['"]([^'"]+)['"]`, 'gi'),
+                            new RegExp(`${keyword}\\s*[:=]\\s*([^\\s,)}]+)`, 'gi'),
+                            new RegExp(`['"]([^'"]*${keyword}[^'"]*)['"]`, 'gi'),
+                            new RegExp(`\\$${keyword}\\s*=\\s*['"]([^'"]+)['"]`, 'gi'),
+                            new RegExp(`"${keyword}"\\s*:\\s*"([^"]+)"`, 'gi'),
+                            new RegExp(`'${keyword}'\\s*:\\s*'([^']+)'`, 'gi'),
+                            new RegExp(`${keyword}\\s*:\\s*([^\\s,}]+)`, 'gi')
+                        ];
+                        
+                        for (const pattern of valuePatterns) {
+                            const match = pattern.exec(line);
+                            if (match && match[1]) {
+                                extractedValue = ` → ${match[1]}`;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    const fullMatch = `Line ${lineNum + 1}: ${line.trim()}${extractedValue}`;
+                    
+                    // Only add if the line is readable (not minified)
+                    if (fullMatch.length < 300 && fullMatch.includes(' ')) {
+                        if (!findings.keywordMatches.has(keyword)) {
+                            findings.keywordMatches.set(keyword, []);
+                        }
+                        findings.keywordMatches.get(keyword).push(fullMatch);
+                        
+                        findings.adminContent.set(`${keyword.toUpperCase()} found in ${sourceUrl.split('/').pop()}: ${fullMatch}`, true);
+                    }
+                }
+            });
+            
+            // Additional pattern matching for specific cases you mentioned
+            // Detect user data arrays and objects
+            const userDataPatterns = [
+                // Match arrays with user objects - more comprehensive
+                /\{[\s\S]*?id:\s*["']?\d+["']?[\s\S]*?name:\s*["'][^"']+["'][\s\S]*?email:\s*[^,}]+[\s\S]*?role:\s*["'][^"']+["'][\s\S]*?\}/gi,
+                /\{[\s\S]*?id:\s*["']?\d+["']?[\s\S]*?name:\s*["'][^"']+["'][\s\S]*?email:\s*[^,}]+[\s\S]*?\}/gi,
+                /\{[\s\S]*?name:\s*["'][^"']+["'][\s\S]*?email:\s*[^,}]+[\s\S]*?\}/gi,
+                /\{[\s\S]*?email:\s*[^,}]+[\s\S]*?name:\s*["'][^"']+["'][\s\S]*?\}/gi,
+                
+                // Match individual user objects with various combinations
+                /\{[^}]*id[^}]*name[^}]*email[^}]*\}/gi,
+                /\{[^}]*id[^}]*email[^}]*phone[^}]*\}/gi,
+                /\{[^}]*name[^}]*email[^}]*phone[^}]*\}/gi,
+                /\{[^}]*first_name[^}]*last_name[^}]*email[^}]*\}/gi,
+                /\{[^}]*email[^}]*name[^}]*\}/gi,
+                /\{[^}]*phone[^}]*name[^}]*\}/gi,
+                
+                // Match role assignments in arrays
+                /\[[\s\S]*?\{[^}]*role[^}]*\}[\s\S]*?\]/gi,
+                
+                // Match adminStats patterns
+                /adminStats[^)]*\)/gi,
+                /["']admin[^"']*["']/gi,
+                /["']api[^"']*["']/gi,
+                /["']role[^"']*["']/gi,
+                
+                // Enhanced patterns for onClick and conditional logic
+                /onClick[^}]*role[^}]*\}/gi,
+                /onClick[^}]*auth[^}]*\}/gi,
+                /onClick[^}]*sign-up[^}]*\}/gi,
+                /onClick[^}]*signup[^}]*\}/gi,
+                /\.push\s*\(\s*["'][^"']*role[^"']*["']\s*\)/gi,
+                /\.push\s*\(\s*["'][^"']*auth[^"']*["']\s*\)/gi,
+                /["']\/auth\/sign-up\?role=[^"']+["']/gi,
+                /["']\/auth\/signin\?role=[^"']+["']/gi,
+                /["']\/auth\/signup\?role=[^"']+["']/gi,
+                /role\s*[=]\s*["'][^"']+["']/gi,
+                /role\s*:\s*["'][^"']+["']/gi,
+                
+                // Personal information patterns
+                /email:\s*["'][^"']+@[^"']+["']/gi,
+                /phone:\s*["'][^"']+["']/gi,
+                /mobile:\s*["'][^"']+["']/gi,
+                /name:\s*["'][^"']+["']/gi,
+                /username:\s*["'][^"']+["']/gi,
+                /user_id:\s*["'][^"']+["']/gi,
+                /first_name:\s*["'][^"']+["']/gi,
+                /last_name:\s*["'][^"']+["']/gi,
+                
+                // Array of users
+                /\[[\s\S]*?\{[^}]*email[^}]*\}[\s\S]*?\]/gi,
+                /users:\s*\[[\s\S]*?\]/gi,
+                /data:\s*\[[\s\S]*?\{[^}]*email[^}]*\}[\s\S]*?\]/gi,
+                
+                // Contact information
+                /contact:\s*\{[^}]*email[^}]*\}/gi,
+                /profile:\s*\{[^}]*name[^}]*\}/gi
+            ];
+            
+            userDataPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    const matchedText = match[0];
+                    if (matchedText.length < 500 && matchedText.length > 20) { // Avoid too long or too short matches
+                        const userDataMatch = `Line ${lineNum + 1}: ${matchedText.trim()}`;
+                        
+                        // Only add if it's readable content
+                        if (userDataMatch.includes(' ') && !userDataMatch.includes('webpackChunk')) {
+                            if (!findings.keywordMatches.has('user_data')) {
+                                findings.keywordMatches.set('user_data', []);
+                            }
+                            findings.keywordMatches.get('user_data').push(userDataMatch);
+                            
+                            findings.adminContent.set(`USER_DATA found in ${sourceUrl.split('/').pop()}: ${userDataMatch}`, true);
+                        }
+                    }
+                }
+            });
+            
+            // Detect API endpoints in function calls
+            const apiCallPatterns = [
+                /\.get\s*\(\s*["']([^"']+)["']/gi,
+                /\.post\s*\(\s*["']([^"']+)["']/gi,
+                /\.put\s*\(\s*["']([^"']+)["']/gi,
+                /\.delete\s*\(\s*["']([^"']+)["']/gi,
+                /url:\s*["']([^"']+)["']/gi,
+                /endpoint:\s*["']([^"']+)["']/gi,
+                /["']https?:\/\/[^"']*\/api[^"']*["']/gi,
+                /["']https?:\/\/[^"']*\/admin[^"']*["']/gi,
+                
+                // Enhanced patterns for conditional auth and role-based routing
+                /\.push\s*\(\s*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /\.push\s*\(\s*["']([^"']*role=[^"']+)["']/gi,
+                /["']\/auth\/sign-up\?role=([^"']+)["']/gi,
+                /["']\/auth\/signin\?role=([^"']+)["']/gi,
+                /["']\/auth\/signup\?role=([^"']+)["']/gi,
+                /["']\/auth\/register\?role=([^"']+)["']/gi,
+                /onClick[^{]*\{[^}]*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /onClick[^{]*\{[^}]*["']([^"']*role=[^"']+)["']/gi,
+                
+                // Navigation and routing patterns
+                /navigate\s*\(\s*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /window\.location\s*=\s*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /window\.location\.href\s*=\s*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /href\s*=\s*["']([^"']*\/auth\/[^"']+)["']/gi,
+                /action\s*=\s*["']([^"']*\/auth\/[^"']+)["']/gi
+            ];
+            
+            apiCallPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    const endpoint = match[1] || match[0];
+                    if (endpoint && (
+                        endpoint.includes('/api') || 
+                        endpoint.includes('/admin') || 
+                        endpoint.includes('/role') || 
+                        endpoint.includes('/auth') ||
+                        endpoint.includes('role=') ||
+                        endpoint.includes('sign-up') ||
+                        endpoint.includes('signup') ||
+                        endpoint.includes('signin') ||
+                        endpoint.includes('register') ||
+                        endpoint.includes('login')
+                    )) {
+                        findings.endpoints.add(endpoint.replace(/["']/g, ''));
+                    }
+                }
+            });
         });
     }
     
-    async function fetchAndAnalyzeJS(url) {
+    async function fetchAndAnalyzeFile(url) {
         if (findings.jsFiles.has(url)) return;
         return new Promise((resolve) => {
             GM_xmlhttpRequest({
@@ -499,10 +859,22 @@
                 onload: function(response) {
                     if (response.status === 200 && response.responseText) {
                         const content = response.responseText;
-                        if (content.length > CONFIG.maxJSSize) { panel.updateStatus(`Skipping large JS: ${url.substring(0, 80)}...`); resolve(); return; }
-                        findings.jsFiles.set(url, { size: content.length, analyzed: true });
-                        panel.updateStatus(`Analyzing: ${url.split('/').pop()}`);
-                        analyzeJSContent(content, url);
+                        const fileExtension = url.split('.').pop()?.toLowerCase();
+                        
+                        if (content.length > CONFIG.maxFileSize) { 
+                            panel.updateStatus(`Skipping large file: ${url.substring(0, 80)}...`); 
+                            resolve(); 
+                            return; 
+                        }
+                        
+                        findings.jsFiles.set(url, { 
+                            type: fileExtension, 
+                            size: content.length, 
+                            analyzed: true 
+                        });
+                        
+                        panel.updateStatus(`Analyzing: ${url.split('/').pop()} (${fileExtension})`);
+                        analyzeFileContent(content, url, fileExtension);
                     }
                     resolve();
                 },
@@ -511,9 +883,14 @@
         });
     }
     
-    function analyzeJSContent(content, sourceUrl) {
+    function analyzeFileContent(content, sourceUrl, fileType) {
+        // Always search for keywords
         searchKeywordsCaseInsensitive(content, sourceUrl);
+        
+        // Search for API endpoints
         CONFIG.apiPatterns.forEach(pattern => { let m; while ((m = pattern.exec(content)) !== null) findings.endpoints.add(m[0]); });
+        
+        // Search for Swagger/API docs
         const swaggerPatterns = [/swagger/gi, /openapi/gi, /api-docs/gi, /redoc/gi];
         swaggerPatterns.forEach(pattern => {
             if (pattern.test(content)) {
@@ -521,6 +898,8 @@
                 if (matches) matches.forEach(m => { const u = m.replace(/["']/g, ''); findings.swaggerUrls.add(u); findings.endpoints.add(u); });
             }
         });
+        
+        // Search for sensitive data
         CONFIG.sensitivePatterns.forEach(({regex, type}) => {
             let match;
             while ((match = regex.exec(content)) !== null) {
@@ -531,37 +910,207 @@
                     findings.hardcodedSecrets.push({ type, value: value.substring(0, 50), source: sourceUrl });
             }
         });
+        
+        // File type specific analysis
+        if (fileType === 'php') {
+            // PHP specific patterns
+            const phpPatterns = [
+                /\$[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*['"]([^'"]+)['"]/g, // Variable assignments
+                /define\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/g, // Define constants
+                /function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, // Function definitions
+                /class\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, // Class definitions
+                /mysql_(?:query|fetch|assoc|num_rows)\s*\([^)]+\)/g, // MySQL functions
+                /mysqli_query\s*\([^)]+\)/g, // MySQLi functions
+                /PDO::(?:prepare|execute|query)\s*\([^)]+\)/g, // PDO functions
+                /echo\s+['"]([^'"]+)['"]/g, // Echo statements
+                /print\s+['"]([^'"]+)['"]/g // Print statements
+            ];
+            
+            phpPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    const value = match[1] || match[0];
+                    findings.sensitiveData.push({ 
+                        type: `PHP ${pattern.source.includes('function') ? 'Function' : pattern.source.includes('class') ? 'Class' : pattern.source.includes('mysql') ? 'Database' : pattern.source.includes('define') ? 'Constant' : 'Variable'}`, 
+                        value: value.substring(0, 100), 
+                        source: sourceUrl 
+                    });
+                }
+            });
+        }
+        
+        // Enhanced personal information extraction for all file types
+        const personalInfoPatterns = [
+            // Extract emails from user objects
+            /\{[^}]*email:\s*["']([^"']+)["'][^}]*\}/gi,
+            /email:\s*["']([^"']+)["']/gi,
+            /["']([^"']+@[^"']+\.[^"']+)["']/gi,
+            
+            // Extract names from user objects
+            /\{[^}]*name:\s*["']([^"']+)["'][^}]*\}/gi,
+            /\{[^}]*first_name:\s*["']([^"']+)["'][^}]*\}/gi,
+            /\{[^}]*last_name:\s*["']([^"']+)["'][^}]*\}/gi,
+            /name:\s*["']([^"']+)["']/gi,
+            /first_name:\s*["']([^"']+)["']/gi,
+            /last_name:\s*["']([^"']+)["']/gi,
+            
+            // Extract phone numbers
+            /\{[^}]*phone:\s*["']([^"']+)["'][^}]*\}/gi,
+            /\{[^}]*mobile:\s*["']([^"']+)["'][^}]*\}/gi,
+            /phone:\s*["']([^"']+)["']/gi,
+            /mobile:\s*["']([^"']+)["']/gi,
+            
+            // Extract user IDs
+            /\{[^}]*id:\s*["']?(\w+)["']?[^}]*\}/gi,
+            /\{[^}]*user_id:\s*["']?(\w+)["']?[^}]*\}/gi,
+            /id:\s*["']?(\w+)["']?/gi,
+            /user_id:\s*["']?(\w+)["']?/gi,
+            
+            // Extract usernames
+            /\{[^}]*username:\s*["']([^"']+)["'][^}]*\}/gi,
+            /username:\s*["']([^"']+)["']/gi
+        ];
+        
+        personalInfoPatterns.forEach(pattern => {
+            let match;
+            while ((match = pattern.exec(content)) !== null) {
+                const value = match[1] || match[0];
+                const type = pattern.source.includes('email') ? 'Email' :
+                           pattern.source.includes('name') ? 'Name' :
+                           pattern.source.includes('phone') || pattern.source.includes('mobile') ? 'Phone' :
+                           pattern.source.includes('id') ? 'User ID' :
+                           pattern.source.includes('username') ? 'Username' : 'Personal Info';
+                
+                findings.sensitiveData.push({ 
+                    type: type, 
+                    value: value.substring(0, 100), 
+                    source: sourceUrl 
+                });
+                
+                // Also add to emails collection if it's an email
+                if (type === 'Email' && value.includes('@')) {
+                    findings.emails.add(value);
+                }
+            }
+        });
+        
+        // Search for role-related patterns
         const rolePatterns = [/role\s*[:=]\s*['"]([^'"]+)['"]/gi, /user_role\s*[:=]\s*['"]([^'"]+)['"]/gi, /is_admin\s*[:=]\s*(true|false)/gi];
         rolePatterns.forEach(pattern => { let m; while ((m = pattern.exec(content)) !== null) findings.rolesFound.add(m[1] || m[0]); });
     }
     
-    function extractJSFiles() {
-        const jsUrls = new Set();
+    function extractFiles() {
+        const fileUrls = new Set();
         // Regex to match chunk files: chunk-*.js, *.chunk.js, [hash].js patterns
-        const chunkPattern = /chunk[-.]|\.[a-f0-9]{8,}\.js|_[a-f0-9]{8,}\.js/;
+        const chunkPattern = /chunk[-.]|\.[a-f0-9]{8,}\.js|_[a-f0-9]{8,}\.js|webpack|_next|static/;
         
-        document.querySelectorAll('script[src]').forEach(script => {
-            let src = script.src;
+        // Get current page domain to filter only related files
+        const currentDomain = window.location.hostname;
+        const currentOrigin = window.location.origin;
+        
+        // Standard script and link tags
+        document.querySelectorAll('script[src], link[href]').forEach(element => {
+            let src = element.src || element.href;
             if (src && !CONFIG.ignoreDomains.some(d => src.includes(d)) && !chunkPattern.test(src)) {
-                if (src.startsWith('/')) src = window.location.origin + src;
-                else if (src.startsWith('./')) src = window.location.href + src.substring(1);
-                else if (!src.startsWith('http')) src = window.location.origin + '/' + src;
-                jsUrls.add(src);
-            }
-        });
-        const pageContent = document.documentElement.innerHTML;
-        [/src=["']([^"']*\.js[^"]*)["']/g, /href=["']([^"']*\.js[^"]*)["']/g].forEach(pattern => {
-            let m;
-            while ((m = pattern.exec(pageContent)) !== null) {
-                let url = m[1];
-                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d)) && !chunkPattern.test(url)) {
-                    if (url.startsWith('/')) url = window.location.origin + url;
-                    else if (!url.startsWith('http')) url = window.location.origin + '/' + url;
-                    jsUrls.add(url);
+                // Check if file is from current domain or same origin
+                if (src.includes(currentDomain) || src.startsWith(currentOrigin)) {
+                    const fileExtension = src.split('.').pop()?.toLowerCase();
+                    if (CONFIG.supportedFileTypes.includes(fileExtension)) {
+                        // Skip obvious minified/bundled files
+                        if (src.includes('webpack') || src.includes('_next') || src.includes('static') || 
+                            src.includes('chunk') || src.includes('bundle') || src.includes('vendor')) {
+                            return;
+                        }
+                        
+                        if (src.startsWith('/')) src = window.location.origin + src;
+                        else if (src.startsWith('./')) src = window.location.href + src.substring(1);
+                        else if (!src.startsWith('http')) src = window.location.origin + '/' + src;
+                        fileUrls.add(src);
+                    }
                 }
             }
         });
-        return jsUrls;
+        
+        // Enhanced search for file references in page content
+        const pageContent = document.documentElement.innerHTML;
+        const filePatterns = [
+            // Standard patterns
+            /src=["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+            /href=["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+            /url\s*\(\s*["']?([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']?\s*\)/gi,
+            
+            // Dynamic import patterns
+            /import\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+            /require\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+            
+            // Fetch and AJAX patterns
+            /fetch\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+            /\.get\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+            /\.post\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+            
+            // Config and asset patterns
+            /configUrl:\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+            /assetUrl:\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+            /baseUrl:\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+            
+            // API endpoint patterns that might be files
+            /["']https?:\/\/[^"']*\/api\/[^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')["']/gi,
+            /["']https?:\/\/[^"']*\/admin\/[^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')["']/gi
+        ];
+        
+        filePatterns.forEach(pattern => {
+            let m;
+            while ((m = pattern.exec(pageContent)) !== null) {
+                let url = m[1];
+                if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d)) && 
+                    !chunkPattern.test(url) && (url.includes(currentDomain) || url.startsWith(currentOrigin))) {
+                    
+                    // Skip obvious minified/bundled files
+                    if (url.includes('webpack') || url.includes('_next') || url.includes('static') || 
+                        url.includes('chunk') || url.includes('bundle') || url.includes('vendor')) {
+                        return;
+                    }
+                    
+                    if (url.startsWith('/')) url = window.location.origin + url;
+                    else if (!url.startsWith('http')) url = window.location.origin + '/' + url;
+                    fileUrls.add(url);
+                }
+            }
+        });
+        
+        // Also check for files in inline scripts
+        document.querySelectorAll('script:not([src])').forEach(script => {
+            if (script.textContent) {
+                const scriptContent = script.textContent;
+                const inlinePatterns = [
+                    /["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']/gi,
+                    /import\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi,
+                    /require\s*\(\s*["']([^"']*\.(' + CONFIG.supportedFileTypes.join('|') + ')[^"']*)["']\s*\)/gi
+                ];
+                
+                inlinePatterns.forEach(pattern => {
+                    let m;
+                    while ((m = pattern.exec(scriptContent)) !== null) {
+                        let url = m[1];
+                        if (url && !url.includes('data:') && !CONFIG.ignoreDomains.some(d => url.includes(d)) && 
+                            !chunkPattern.test(url) && (url.includes(currentDomain) || url.startsWith(currentOrigin))) {
+                            
+                            // Skip obvious minified/bundled files
+                            if (url.includes('webpack') || url.includes('_next') || url.includes('static') || 
+                                url.includes('chunk') || url.includes('bundle') || url.includes('vendor')) {
+                                return;
+                            }
+                            
+                            if (url.startsWith('/')) url = window.location.origin + url;
+                            else if (!url.startsWith('http')) url = window.location.origin + '/' + url;
+                            fileUrls.add(url);
+                        }
+                    }
+                });
+            }
+        });
+        
+        return fileUrls;
     }
     
     function analyzeDOM() {
@@ -593,7 +1142,7 @@
         panel.updateStatus('Analyzing inline scripts...');
         document.querySelectorAll('script:not([src])').forEach((script, index) => {
             const content = script.textContent;
-            if (content && content.length > 0 && content.length < 500000) analyzeJSContent(content, `inline-script-${index}`);
+            if (content && content.length > 0 && content.length < 500000) analyzeFileContent(content, `inline-script-${index}`, 'js');
         });
     }
     
@@ -602,13 +1151,14 @@
         panel.updateStatus('Starting security reconnaissance...');
         analyzeDOM();
         analyzeInlineScripts();
-        const jsFiles = extractJSFiles();
-        panel.updateStatus(`Found ${jsFiles.size} JavaScript files to analyze...`);
+        const files = extractFiles();
+        panel.updateStatus(`Found ${files.size} files to analyze...`);
+        
         let analyzed = 0;
-        for (const jsUrl of jsFiles) {
-            await fetchAndAnalyzeJS(jsUrl);
+        for (const fileUrl of files) {
+            await fetchAndAnalyzeFile(fileUrl);
             analyzed++;
-            panel.updateStatus(`Analyzed ${analyzed}/${jsFiles.size} JS files...`);
+            panel.updateStatus(`Analyzed ${analyzed}/${files.size} files...`);
             await new Promise(resolve => setTimeout(resolve, CONFIG.throttleRequests / 10));
         }
         const pageText = document.documentElement.innerHTML;
@@ -619,7 +1169,7 @@
         console.log('Sensitive Data:', findings.sensitiveData);
         console.log('Admin/Role Keywords:', Array.from(findings.adminContent.keys()));
         console.log('Emails:', Array.from(findings.emails));
-        console.log('JS Files Analyzed:', Array.from(findings.jsFiles.keys()));
+        console.log('Files Analyzed:', Array.from(findings.jsFiles.keys()));
         console.groupEnd();
         if (findings.sensitiveData.length > 0 || findings.keywordMatches.size > 0)
             panel.updateStatus(`! Found ${findings.sensitiveData.length + findings.keywordMatches.size} potential vulnerabilities!`, true);
